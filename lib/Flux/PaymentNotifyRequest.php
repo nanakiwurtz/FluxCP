@@ -110,8 +110,12 @@ class Flux_PaymentNotifyRequest {
 	 */
 	public function process()
 	{
+		if ((gethostbyaddr($_SERVER['REMOTE_ADDR']) !== 'ipn.sandbox.paypal.com') || (gethostbyaddr($_SERVER['REMOTE_ADDR']) !== 'notify.paypal.com')) {
+			$this->logPayPal('Received notification from unknown source: %s (%s) Aborting!', $_SERVER['REMOTE_ADDR'], gethostbyaddr($_SERVER['REMOTE_ADDR']));
+			return false;
+		}
 		$this->logPayPal('Received notification from %s (%s)', $_SERVER['REMOTE_ADDR'], gethostbyaddr($_SERVER['REMOTE_ADDR']));
-
+		
 		if ($this->verify()) {
 			$this->logPayPal('Proceeding to validate the authenticity of the transaction...');
 
@@ -405,6 +409,7 @@ class Flux_PaymentNotifyRequest {
 
 			$fp = fopen($logFile, 'w');
 			if ($fp) {
+				fwrite($fp, "<?php exit('Forbidden'); ?>\n");
 				foreach ($this->ipnVariables->toArray() as $key => $value) {
 					fwrite($fp, "$key: $value\n");
 				}
